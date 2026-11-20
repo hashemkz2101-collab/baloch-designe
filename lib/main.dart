@@ -13,11 +13,11 @@ Future<void> main() async {
     databaseFactory = databaseFactoryFfi;
   }
   await AppDb.instance.init();
-  runApp(const MahrochDesignerApp());
+  runApp(const BalochDesignApp());
 }
 
-class MahrochDesignerApp extends StatelessWidget {
-  const MahrochDesignerApp({super.key});
+class BalochDesignApp extends StatelessWidget {
+  const BalochDesignApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
@@ -41,7 +41,7 @@ class AppDb {
     final dir = await getApplicationSupportDirectory();
     await Directory(dir.path).create(recursive: true);
     _db = await databaseFactory.openDatabase(
-      p.join(dir.path, 'mahroch_designer.db'),
+      p.join(dir.path, 'baloch_design.db'),
       options: OpenDatabaseOptions(
         version: 1,
         onCreate: (db, version) async {
@@ -180,46 +180,199 @@ class _ListPage extends StatelessWidget {
   ]));
 }
 
-class DesignerPage extends StatefulWidget { const DesignerPage({super.key}); @override State<DesignerPage> createState()=>_DesignerPageState(); }
-class _DesignerPageState extends State<DesignerPage> {
-  final GlobalKey canvasKey=GlobalKey();
-  final List<CanvasPart> parts=[];
-  int? selected;
-  String designName='طرح جدید';
-  void addPart(){setState(()=>parts.add(CanvasPart('قطعه ${parts.length+1}',Offset(80+parts.length*18,70+parts.length*18))));selected=parts.length-1;}
-  Future<void> save() async {
-    final data=jsonEncode(parts.map((e)=>{'name':e.name,'x':e.position.dx,'y':e.position.dy,'rotation':e.rotation,'scale':e.scale}).toList());
-    await AppDb.instance.add('designs',{'name':designName,'model_id':null,'canvas_json':data,'updated_at':DateTime.now().toIso8601String()});
-    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('طرح در پایگاه‌داده محلی ذخیره شد')));
-  }
-  @override Widget build(BuildContext context)=>Padding(padding:const EdgeInsets.all(22),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[const Expanded(child:Text('محیط طراحی',style:TextStyle(fontSize:25,fontWeight:FontWeight.w900))),OutlinedButton.icon(onPressed:addPart,icon:const Icon(Icons.add),label:const Text('افزودن قطعه')),const SizedBox(width:8),FilledButton.icon(onPressed:save,icon:const Icon(Icons.save),label:const Text('ذخیره طرح'))]),
-    const SizedBox(height:14),
-    Expanded(child:Row(children:[
-      SizedBox(width:190,child:Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        const Text('ابزارها',style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
-        const SizedBox(height:12),
-        const Text('نسخه اولیه بوم'),
-        const SizedBox(height:8),
-        const Text('• افزودن قطعه آزمایشی'),
-        const Text('• انتخاب و جابه‌جایی'),
-        const Text('• ذخیره مختصات'),
-        const Spacer(),
-        if(selected!=null&&selected!<parts.length) ...[
-          Text('انتخاب: ${parts[selected!].name}'),
-          Row(children:[IconButton(onPressed:()=>setState(()=>parts[selected!].rotation-=0.1),icon:const Icon(Icons.rotate_left)),IconButton(onPressed:()=>setState(()=>parts[selected!].rotation+=0.1),icon:const Icon(Icons.rotate_right))]),
-          TextButton(onPressed:()=>setState(()=>parts.removeAt(selected!)),child:const Text('حذف قطعه')),
-        ]
-      ])))),
-      const SizedBox(width:12),
-      Expanded(child:Container(color:const Color(0xFFE9EEEC),child:Center(child:RepaintBoundary(key:canvasKey,child:LayoutBuilder(builder:(ctx,c)=>Container(width:c.maxWidth,height:c.maxHeight,color:Colors.white,child:Stack(children:[
-        Positioned.fill(child:CustomPaint(painter:GridPainter())),
-        for(int i=0;i<parts.length;i++)
-          Positioned(left:parts[i].position.dx,top:parts[i].position.dy,child:GestureDetector(onTap:()=>setState(()=>selected=i),onPanUpdate:(d)=>setState(()=>parts[i].position+=d.delta),child:Transform.rotate(angle:parts[i].rotation,child:Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:selected==i?const Color(0xFFD8EAE5):const Color(0xFFF2F4F3),border:selected==i?Border.all(color:const Color(0xFF245B55),width:2):Border.all(color:Colors.black26),borderRadius:BorderRadius.circular(8)),child:Text(parts[i].name))))),
-      ])))))),
-    ]))),
-  ]));
+
+class DesignerPage extends StatefulWidget {
+  const DesignerPage({super.key});
+  @override
+  State<DesignerPage> createState() => _DesignerPageState();
 }
+
+class _DesignerPageState extends State<DesignerPage> {
+  final GlobalKey canvasKey = GlobalKey();
+  final List<CanvasPart> parts = [];
+  int? selected;
+  String designName = 'طرح جدید';
+
+  void addPart() {
+    setState(() {
+      parts.add(CanvasPart(
+        'قطعه ${parts.length + 1}',
+        Offset(80 + parts.length * 18, 70 + parts.length * 18),
+      ));
+      selected = parts.length - 1;
+    });
+  }
+
+  Future<void> save() async {
+    final data = jsonEncode(parts.map((e) => {
+      'name': e.name,
+      'x': e.position.dx,
+      'y': e.position.dy,
+      'rotation': e.rotation,
+      'scale': e.scale,
+    }).toList());
+    await AppDb.instance.add('designs', {
+      'name': designName,
+      'model_id': null,
+      'canvas_json': data,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('طرح در پایگاه‌داده محلی ذخیره شد')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'محیط طراحی',
+                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: addPart,
+                icon: const Icon(Icons.add),
+                label: const Text('افزودن قطعه'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: save,
+                icon: const Icon(Icons.save),
+                label: const Text('ذخیره طرح'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 190,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'ابزارها',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text('نسخه اولیه بوم'),
+                          const SizedBox(height: 8),
+                          const Text('• افزودن قطعه آزمایشی'),
+                          const Text('• انتخاب و جابه‌جایی'),
+                          const Text('• ذخیره مختصات'),
+                          const Spacer(),
+                          if (selected != null && selected! < parts.length) ...[
+                            Text('انتخاب: ${parts[selected!].name}'),
+                            Row(
+                              children: [
+                                IconButton(
+                                  onPressed: () => setState(() {
+                                    parts[selected!].rotation -= 0.1;
+                                  }),
+                                  icon: const Icon(Icons.rotate_left),
+                                ),
+                                IconButton(
+                                  onPressed: () => setState(() {
+                                    parts[selected!].rotation += 0.1;
+                                  }),
+                                  icon: const Icon(Icons.rotate_right),
+                                ),
+                              ],
+                            ),
+                            TextButton(
+                              onPressed: () => setState(() {
+                                parts.removeAt(selected!);
+                                selected = null;
+                              }),
+                              child: const Text('حذف قطعه'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    color: const Color(0xFFE9EEEC),
+                    child: Center(
+                      child: RepaintBoundary(
+                        key: canvasKey,
+                        child: LayoutBuilder(
+                          builder: (ctx, constraints) {
+                            return Container(
+                              width: constraints.maxWidth,
+                              height: constraints.maxHeight,
+                              color: Colors.white,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: CustomPaint(painter: GridPainter()),
+                                  ),
+                                  for (int i = 0; i < parts.length; i++)
+                                    Positioned(
+                                      left: parts[i].position.dx,
+                                      top: parts[i].position.dy,
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => selected = i),
+                                        onPanUpdate: (details) => setState(() {
+                                          parts[i].position += details.delta;
+                                          selected = i;
+                                        }),
+                                        child: Transform.rotate(
+                                          angle: parts[i].rotation,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(18),
+                                            decoration: BoxDecoration(
+                                              color: selected == i
+                                                  ? const Color(0xFFD8EAE5)
+                                                  : const Color(0xFFF2F4F3),
+                                              border: Border.all(
+                                                color: selected == i
+                                                    ? const Color(0xFF245B55)
+                                                    : Colors.black26,
+                                                width: selected == i ? 2 : 1,
+                                              ),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(parts[i].name),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class CanvasPart {String name; Offset position; double rotation=0,scale=1; CanvasPart(this.name,this.position);}
 class GridPainter extends CustomPainter {
   @override void paint(Canvas canvas,Size size){final p=Paint()..color=const Color(0xFFEFF2F0)..strokeWidth=1;for(double x=0;x<size.width;x+=24){canvas.drawLine(Offset(x,0),Offset(x,size.height),p);}for(double y=0;y<size.height;y+=24){canvas.drawLine(Offset(0,y),Offset(size.width,y),p);}}
